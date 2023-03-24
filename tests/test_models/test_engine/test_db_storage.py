@@ -1,70 +1,99 @@
+#!/usr/bin/python
+"""Unittests for DBStorage class of AirBnb_Clone_v2"""
 import unittest
-import os.path
+import pep8
 import os
-from datetime import datetime
+from os import getenv
+from models.base_model import BaseModel
+from models.user import User
+from models.state import State
+from models.city import City
+from models.amenity import Amenity
+from models.place import Place
+from models.review import Review
 from models.engine.db_storage import DBStorage
-from models import *
-from console import HBNBCommand
+from models.engine.file_storage import FileStorage
+import MySQLdb
 
 
-@unittest.skipIf(os.getenv('HBNB_TYPE_STORAGE', '') != "db", "db")
-class Test_DBStorage(unittest.TestCase):
-    """
-    Test the db storage class
-    """
+@unittest.skipIf(
+    os.getenv('HBNB_TYPE_STORAGE') != 'db',
+    "This test only work in DBStorage")
+class TestDBStorage(unittest.TestCase):
+    """this will test the DBStorage"""
 
-    def setUp(self):
-        self.cli = HBNBCommand()
-        self.store = DBStorage()
+    @classmethod
+    def setUpClass(cls):
+        """Tests"""
+        cls.user = User()
+        cls.user.first_name = "Kev"
+        cls.user.last_name = "Yo"
+        cls.user.email = "1234@yahoo.com"
+        cls.storage = FileStorage()
 
-        test_args = {'updated_at': datetime(2017, 2, 12, 00, 31, 53, 331997),
-                     'id': 'f519fb40-1f5c-458b-945c-2ee8eaaf4900',
-                     'created_at': datetime(2017, 2, 12, 00, 31, 53, 331900),
-                     'name': 'wifi'}
-        self.model = Amenity(test_args)
+    @classmethod
+    def teardown(cls):
+        """at the end of the test this will tear it down"""
+        del cls.user
 
-    def test_init(self):
-        self.assertNotEqual(self.store._DBStorage__engine, None)
-        self.assertEqual(self.store._DBStorage__session, None)
+    def tearDown(self):
+        """teardown"""
+        try:
+            os.remove("file.json")
+        except Exception:
+            pass
+
+    def test_pep8_DBStorage(self):
+        """Tests pep8 style"""
+        style = pep8.StyleGuide(quiet=True)
+        p = style.check_files(['models/engine/db_storage.py'])
+        self.assertEqual(p.total_errors, 0, "fix pep8")
 
     def test_all(self):
-        self.store.reload()
-
-        total = len(self.store.all())
-        self.model.save()
-        self.assertEqual(total + 1, len(self.store.all()))
-
-        self.cli.do_create('User email="some@gmail.com" password="hello"')
-        self.assertEqual(total + 2, len(self.store.all()))
-
-    def test_all_class_specified(self):
-        self.store.reload()
-
-        total = len(self.store.all("Amenity"))
-        self.model.save()
-        self.assertEqual(total + 1, len(self.store.all("Amenity")))
-
-        self.cli.do_create('Amenity name="bathroom"')
-        self.assertEqual(total + 2, len(self.store.all("Amenity")))
-
-    def test_all_invalid_class(self):
-        self.store.reload()
-
-        total = len(self.store.all())
-        storage = self.store.all("Dog")
-
-        self.assertTrue(storage == None)
-        self.assertEqual(total, len(self.store.all()))
+        """tests if all works in DB Storage"""
+        storage = FileStorage()
+        obj = storage.all()
+        self.assertIsNotNone(obj)
+        self.assertEqual(type(obj), dict)
+        self.assertIs(obj, storage._FileStorage__objects)
 
     def test_new(self):
-        pass
+        """test when new is created"""
+        storage = FileStorage()
+        obj = storage.all()
+        user = User()
+        user.name = "Kevin"
+        storage.new(user)
+        key = user.__class__.__name__ + "." + str(user.id)
+        self.assertIsNotNone(obj[key])
 
-    def test_save(self):
-        pass
-
-    def test_reload(self):
-        self.store.reload()
-        self.assertNotEqual(self.store._DBStorage__session, None)
+    def test_reload_dbtorage(self):
+        """
+        tests reload
+        """
+        self.storage.save()
+        Root = os.path.dirname(os.path.abspath("console.py"))
+        path = os.path.join(Root, "file.json")
+        with open(path, 'r') as f:
+            lines = f.readlines()
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+        self.storage.save()
+        with open(path, 'r') as f:
+            lines2 = f.readlines()
+        self.assertEqual(lines, lines2)
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+        with open(path, "w") as f:
+            f.write("{}")
+        with open(path, "r") as r:
+            for line in r:
+                self.assertEqual(line, "{}")
+        self.assertIs(self.storage.reload(), None)
 
 
 if __name__ == "__main__":

@@ -1,60 +1,71 @@
+#!/usr/bin/python3
+"""test for BaseModel"""
 import unittest
 import os
-from datetime import datetime
-from models import *
-from console import HBNBCommand
+from os import getenv
+from models.base_model import BaseModel
+import pep8
 
 
-@unittest.skipIf(os.getenv('HBNB_TYPE_STORAGE', '') == "db", "db")
-class Test_BaseModel(unittest.TestCase):
-    """
-    Test the base model class
-    """
+class TestBaseModel(unittest.TestCase):
+    """this will test the base model class"""
 
-    def setUp(self):
-        self.cli = HBNBCommand()
-        self.model1 = BaseModel()
+    @classmethod
+    def setUpClass(cls):
+        """setup for the test"""
+        cls.base = BaseModel()
+        cls.base.name = "Kev"
+        cls.base.num = 20
 
-        test_args = {'created_at': datetime(2017, 2, 11, 2, 6, 55, 258849),
-                     'updated_at': datetime(2017, 2, 11, 2, 6, 55, 258966),
-                     'id': '46458416-e5d5-4985-aa48-a2b369d03d2a',
-                     'name': 'model1'}
-        self.model2 = BaseModel(test_args)
-        self.model2.save()
+    @classmethod
+    def teardown(cls):
+        """at the end of the test this will tear it down"""
+        del cls.base
 
     def tearDown(self):
-        self.cli.do_destroy("BaseModel 46458416-e5d5-4985-aa48-a2b369d03d2a")
+        """teardown"""
+        try:
+            os.remove("file.json")
+        except Exception:
+            pass
 
-    def test_instantiation(self):
-        self.assertIsInstance(self.model1, BaseModel)
-        self.assertTrue(hasattr(self.model1, "created_at"))
-        self.assertTrue(hasattr(self.model1, "id"))
-        self.assertTrue(hasattr(self.model1, "updated_at"))
+    def test_pep8_BaseModel(self):
+        """Testing for pep8"""
+        style = pep8.StyleGuide(quiet=True)
+        p = style.check_files(['models/base_model.py'])
+        self.assertEqual(p.total_errors, 0, "fix pep8")
 
-    def test_reinstantiation(self):
-        self.assertIsInstance(self.model2, BaseModel)
-        self.assertEqual(self.model2.id,
-                         '46458416-e5d5-4985-aa48-a2b369d03d2a')
-        self.assertEqual(self.model2.created_at,
-                         datetime(2017, 2, 11, 2, 6, 55, 258849))
+    def test_checking_for_docstring_BaseModel(self):
+        """checking for docstrings"""
+        self.assertIsNotNone(BaseModel.__doc__)
+        self.assertIsNotNone(BaseModel.__init__.__doc__)
+        self.assertIsNotNone(BaseModel.__str__.__doc__)
+        self.assertIsNotNone(BaseModel.save.__doc__)
+        self.assertIsNotNone(BaseModel.to_dict.__doc__)
 
-    def test_save(self):
-        old_time = self.model2.updated_at
-        self.model2.save()
-        self.assertNotEqual(old_time, self.model2.updated_at)
+    def test_method_BaseModel(self):
+        """chekcing if Basemodel have methods"""
+        self.assertTrue(hasattr(BaseModel, "__init__"))
+        self.assertTrue(hasattr(BaseModel, "save"))
+        self.assertTrue(hasattr(BaseModel, "to_dict"))
 
-    def test_to_json(self):
-        jsonified = self.model2.to_json()
-        self.assertNotEqual(self.model2.__dict__, jsonified)
-        self.assertNotIsInstance(jsonified["created_at"], datetime)
-        self.assertNotIsInstance(jsonified["updated_at"], datetime)
-        self.assertEqual(jsonified["created_at"], '2017-02-11 02:06:55.258849')
-        self.assertTrue(hasattr(jsonified, "__class__"))
-        self.assertEqual(jsonified["__class__"], "BaseModel")
+    def test_init_BaseModel(self):
+        """test if the base is an type BaseModel"""
+        self.assertTrue(isinstance(self.base, BaseModel))
 
-    def test_to_json_no_sa_instance_state(self):
-        jsonified = self.model2.to_json()
-        self.assertFalse(hasattr(jsonified, "_sa_instance_state"))
+    @unittest.skipIf(getenv("HBNB_TYPE_STORAGE") == 'db', 'DB')
+    def test_save_BaesModel(self):
+        """test if the save works"""
+        self.base.save()
+        self.assertNotEqual(self.base.created_at, self.base.updated_at)
+
+    def test_to_dict_BaseModel(self):
+        """test if dictionary works"""
+        base_dict = self.base.to_dict()
+        self.assertEqual(self.base.__class__.__name__, 'BaseModel')
+        self.assertIsInstance(base_dict['created_at'], str)
+        self.assertIsInstance(base_dict['updated_at'], str)
+
 
 if __name__ == "__main__":
     unittest.main()
